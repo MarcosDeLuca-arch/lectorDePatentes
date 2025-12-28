@@ -1,0 +1,32 @@
+{
+  "name": "mi-app-lectora-patentes",
+  "version": "1.0.0",
+  "description": "Aplicación lectora de patentes con Google Cloud Vision",
+  "scripts": {
+    "start": "parcel serve public/index.html --port 3000",
+    "build": "parcel build public/index.html --dist-dir build --public-url /",
+    "predeploy": "npm run build",
+    "deploy": "firebase deploy"
+  },
+  "keywords": [
+    "patentes",
+    "ocr",
+    "vision",
+    "google-cloud"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google-cloud/vision": "^5.3.4",
+    "firebase": "^12.7.0"
+  },
+  "devDependencies": {
+    "buffer": "^6.0.3",
+    "parcel": "^2.12.0"
+  },
+  "targets": {
+    "default": {
+      "distDir": "./build"
+    }
+  }
+}

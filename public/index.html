@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Lector de Patentes - Inspector</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 15px;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.5;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #4285f4;
+        }
+        
+        h1 {
+            font-size: 24px;
+            color: #1a73e8;
+            margin-bottom: 8px;
+        }
+        
+        .subtitle {
+            color: #5f6368;
+            font-size: 14px;
+        }
+        
+        /* Video y captura */
+        #video-container {
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            position: relative;
+            aspect-ratio: 4/3;
+        }
+        
+        #camera-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* Espejo para selfie */
+        }
+        
+        .capture-overlay {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        /* Botones */
+        .btn {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 14px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .btn:hover {
+            background: #0d62d9;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background: #5f6368;
+        }
+        
+        .btn-secondary:hover {
+            background: #4a4d52;
+        }
+        
+        .btn-capture {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: white;
+            border: 4px solid #1a73e8;
+            position: relative;
+        }
+        
+        .btn-capture:after {
+            content: '';
+            position: absolute;
+            width: 44px;
+            height: 44px;
+            background: #ea4335;
+            border-radius: 50%;
+        }
+        
+        .btn-capture:hover {
+            transform: scale(1.05);
+        }
+        
+        /* Opciones de entrada */
+        .input-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .option-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .option-card:hover {
+            border-color: #1a73e8;
+            transform: translateY(-2px);
+        }
+        
+        .option-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        /* Carga */
+        #loader {
+            display: none;
+            text-align: center;
+            padding: 30px;
+            background: white;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #1a73e8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Resultados */
+        #results {
+            display: none;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .plate-options {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .plate-option {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .plate-option:hover {
+            border-color: #1a73e8;
+            background: #e8f0fe;
+        }
+        
+        .plate-option.selected {
+            border-color: #34a853;
+            background: #e6f4ea;
+        }
+        
+        .plate-number {
+            font-size: 24px;
+            font-weight: bold;
+            font-family: monospace;
+            letter-spacing: 1px;
+            color: #1a73e8;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        
+        .plate-format {
+            font-size: 12px;
+            color: #5f6368;
+            text-align: center;
+        }
+        
+        /* Entrada manual */
+        .manual-input {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .manual-input input {
+            width: 100%;
+            padding: 14px;
+            font-size: 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            text-align: center;
+            letter-spacing: 1px;
+            font-family: monospace;
+        }
+        
+        .manual-input input:focus {
+            outline: none;
+            border-color: #1a73e8;
+        }
+        
+        /* Feedback */
+        .feedback-section {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .difficulty-feedback {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .difficulty-btn {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .difficulty-btn:hover {
+            background: #f8f9fa;
+        }
+        
+        /* Responsive */
+        @media (max-width: 480px) {
+            .input-options {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            .btn {
+                padding: 12px 20px;
+                font-size: 15px;
+            }
+        }
+        
+        /* Estado de cámara */
+        .camera-off {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 300px;
+            background: #1a1a1a;
+            color: white;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .camera-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .image-preview {
+            width: 100%;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        
+        canvas {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📸 Lector de Patentes</h1>
+            <p class="subtitle">Sistema de inspección para estacionamiento medido</p>
+        </header>
+
+        <!-- Opciones de entrada -->
+        <div class="input-options">
+            <div class="option-card" id="use-camera-btn">
+                <div class="option-icon">📷</div>
+                <h3>Usar Cámara</h3>
+                <p>Captura en tiempo real</p>
+            </div>
+            
+            <div class="option-card" id="upload-btn">
+                <div class="option-icon">📁</div>
+                <h3>Subir Imagen</h3>
+                <p>Desde galería</p>
+            </div>
+        </div>
+
+        <!-- Contenedor de cámara -->
+        <div id="video-container" style="display: none;">
+            <video id="camera-feed" playsinline autoplay></video>
+            <div class="capture-overlay">
+                <button id="toggle-camera-btn" class="btn btn-secondary">
+                    🔄 Cambiar cámara
+                </button>
+                <button id="capture-btn" class="btn-capture"></button>
+            </div>
+        </div>
+
+        <!-- Vista sin cámara -->
+        <div id="camera-off" class="camera-off">
+            <div style="text-align: center;">
+                <div class="camera-icon">📷</div>
+                <p>Selecciona una opción para comenzar</p>
+            </div>
+        </div>
+
+        <!-- Preview de imagen -->
+        <img id="image-preview" class="image-preview" style="display: none;">
+
+        <!-- Input de archivo oculto -->
+        <input type="file" id="image-input" accept="image/*" capture="environment" style="display: none;">
+
+        <!-- Botón de análisis -->
+        <button id="analyze-btn" class="btn" style="width: 100%; display: none;">
+            🔍 Analizar Patente
+        </button>
+
+        <!-- Cargando -->
+        <div id="loader">
+            <div class="spinner"></div>
+            <p>Procesando imagen...</p>
+            <p class="subtitle">Analizando con Google Cloud Vision</p>
+        </div>
+
+        <!-- Resultados -->
+        <div id="results">
+            <div class="results-header">
+                <h2>📋 Resultados</h2>
+                <button id="new-scan-btn" class="btn btn-secondary">🔄 Nueva lectura</button>
+            </div>
+
+            <!-- Opciones del sistema -->
+            <div id="detection-results">
+                <!-- Se llena dinámicamente -->
+            </div>
+
+            <!-- Entrada manual -->
+            <div class="manual-input">
+                <h3>✏️ Corregir manualmente</h3>
+                <input type="text" id="manual-plate-input" 
+                       placeholder="Ej: AB 123 CD" 
+                       maxlength="10"
+                       pattern="[A-Z0-9\s]+">
+                <button id="confirm-manual-btn" class="btn">✅ Usar esta patente</button>
+                <p style="font-size: 12px; color: #5f6368; margin-top: 8px;">
+                    * Las correcciones ayudan a mejorar el sistema
+                </p>
+            </div>
+
+            <!-- Feedback de dificultad -->
+            <div class="feedback-section">
+                <h3>📝 ¿Esta patente fue difícil de leer?</h3>
+                <div class="difficulty-feedback">
+                    <button class="difficulty-btn" data-difficulty="easy">😊 Fácil</button>
+                    <button class="difficulty-btn" data-difficulty="medium">😐 Normal</button>
+                    <button class="difficulty-btn" data-difficulty="hard">😰 Difícil</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Canvas para procesamiento -->
+    <canvas id="canvas"></canvas>
+
+    <!-- Botón flotante para configuración -->
+    <div id="config-floater" style="position: fixed; bottom: 80px; right: 20px; z-index: 1000;">
+        <button onclick="toggleConfigPanel()" 
+                style="width: 50px; height: 50px; border-radius: 50%; background: #1a73e8; color: white; border: none; font-size: 20px; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.3);">
+            ⚙️
+        </button>
+    </div>
+
+    <!-- Panel de configuración -->
+    <div id="config-panel" style="display: none; position: fixed; bottom: 140px; right: 20px; background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); z-index: 1001; width: 300px;">
+        <h4 style="margin-bottom: 15px;">⚙️ Configuración</h4>
+        
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; margin-bottom: 5px; font-size: 14px;">
+                <input type="checkbox" id="auto-mode" checked> Modo automático
+            </label>
+            <div style="font-size: 12px; color: #666; margin-left: 20px;">
+                >85% confianza = registro automático
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; margin-bottom: 5px; font-size: 14px;">
+                <input type="checkbox" id="quick-mode" checked> Confirmación rápida
+            </label>
+            <div style="font-size: 12px; color: #666; margin-left: 20px;">
+                >70% confianza = 3 segundos para confirmar
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; margin-bottom: 5px; font-size: 14px;">
+                <input type="checkbox" id="vibrate-mode"> Vibración
+            </label>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 5px; font-size: 14px;">
+                <input type="checkbox" id="batch-mode"> Modo inspección rápida
+            </label>
+        </div>
+        
+        <button onclick="saveConfig()" class="btn" style="width: 100%;">
+            💾 Guardar
+        </button>
+    </div>
+
+<script type="module" src="./main.js"></script></body>
+</html>
